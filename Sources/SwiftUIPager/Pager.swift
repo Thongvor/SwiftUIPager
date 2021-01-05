@@ -267,8 +267,8 @@ extension Pager where ID == Element.ID, Element : Identifiable {
     ///
     /// - Parameter data: Collection of items to populate the content
     /// - Parameter content: Factory method to build new pages
-    public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
-        self.init(page: page, data: Array(data), id: \Element.id, content: content)
+    public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, draggingOffset: Binding<CGFloat> = .constant(0.0), @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
+        self.init(page: page, data: Array(data), id: \Element.id, draggingOffset: draggingOffset, content: content)
     }
     
 }
