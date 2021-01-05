@@ -210,6 +210,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
                          pagerModel: pagerModel,
                          data: data,
                          id: id,
+                         draggingOffset: self.$draggingOffset,
                          content: content)
             .contentLoadingPolicy(contentLoadingPolicy)
             .loopPages(isInifinitePager, repeating: loopingCount)
