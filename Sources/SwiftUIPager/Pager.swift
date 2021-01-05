@@ -198,6 +198,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
     public var body: some View {
         GeometryReader { proxy in
             self.content(for: proxy.size)
+                .environmentObject(pagerModel)
                 .onReceive(pagerModel.$page) { (page) in
                     self.page = page
                 }
@@ -205,7 +206,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         .clipped()
     }
     
-    func pagerContent(_ pagerModel: PagerModel, size: CGSize) -> PagerContent {
+    func content(for size: CGSize) -> PagerContent {
         var pagerContent =
             PagerContent(size: size,
                          pagerModel: pagerModel,
@@ -248,17 +249,6 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         
         return pagerContent
     }
-    
-    func content(for size: CGSize) -> some View {
-        Group {
-            if #available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *) {
-                StateObjectViewProxy(property: pagerModel) { pagerContent($0, size: size) }
-            } else {
-                ObservedObjectViewProxy(property: pagerModel) { pagerContent($0, size: size) }
-            }
-        }
-    }
-    
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
