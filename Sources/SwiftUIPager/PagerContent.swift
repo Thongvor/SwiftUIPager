@@ -133,7 +133,7 @@ extension Pager {
         /// Size of the view
 
         /// `swipeGesture` translation on the X-Axis
-        @State var draggingOffset: CGFloat = 0
+        @Binding var draggingOffset: CGFloat
 
         /// `swipeGesture` last translation on the X-Axis
         #if !os(tvOS)
@@ -156,7 +156,13 @@ extension Pager {
         /// - Parameter data: Array of items to populate the content
         /// - Parameter id: KeyPath to identifiable property
         /// - Parameter content: Factory method to build new pages
-        init(size: CGSize, pagerModel: PagerModel, data: [Element], id: KeyPath<Element, ID>, @ViewBuilder content: @escaping (Element) -> PageView) {
+        init(size: CGSize,
+             pagerModel: PagerModel,
+             data: [Element],
+             id: KeyPath<Element, ID>,
+             draggingOffset: Binding<CGFloat>,
+             @ViewBuilder content: @escaping (Element) -> PageView) {
+            self._draggingOffset = draggingOffset
             self.size = size
             self.pagerModel = pagerModel
             self.data = data.map { PageWrapper(batchId: 1, keyPath: id, element: $0) }
