@@ -199,7 +199,6 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         GeometryReader { proxy in
             self.content(for: proxy.size)
                 .onReceive(pagerModel.$page) { (page) in
-                    guard self.page != page else { return }
                     self.page = page
                 }
         }
