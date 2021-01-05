@@ -151,7 +151,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
     /*** State and Binding properties ***/
     
     /// `swipeGesture` translation on the X-Axis
-    @Binding var draggingOffset: CGFloat
+    @State var draggingOffset: CGFloat = 0.0
     
     /// `swipeGesture` last translation on the X-Axis
     #if !os(tvOS)
@@ -171,6 +171,8 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         }
     }
     
+    @Binding var contentDraggingOffset: CGFloat
+    
     let pagerModel: PagerModel
     
     /// Initializes a new `Pager`.
@@ -183,10 +185,10 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         page: Binding<Int>,
         data: Data,
         id: KeyPath<Element, ID>,
-        draggingOffset: Binding<CGFloat> = .constant(0.0),
+        draggingOffset: Binding<CGFloat>,
         @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
         self._page = page
-        self._draggingOffset = draggingOffset
+        self._contentDraggingOffset = draggingOffset
         self.pagerModel = PagerModel(page: page.wrappedValue)
         self.data = Array(data)
         self.id = id
@@ -210,7 +212,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
                          pagerModel: pagerModel,
                          data: data,
                          id: id,
-                         draggingOffset: self.$draggingOffset,
+                         draggingOffset: self.$contentDraggingOffset,
                          content: content)
             .contentLoadingPolicy(contentLoadingPolicy)
             .loopPages(isInifinitePager, repeating: loopingCount)
@@ -267,7 +269,7 @@ extension Pager where ID == Element.ID, Element : Identifiable {
     ///
     /// - Parameter data: Collection of items to populate the content
     /// - Parameter content: Factory method to build new pages
-    public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, draggingOffset: Binding<CGFloat> = .constant(0.0), @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
+    public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, draggingOffset: Binding<CGFloat>, @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
         self.init(page: page, data: Array(data), id: \Element.id, draggingOffset: draggingOffset, content: content)
     }
     
