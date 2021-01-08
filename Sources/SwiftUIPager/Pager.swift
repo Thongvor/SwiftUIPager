@@ -154,7 +154,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
     @State var size: CGSize = .zero
 
     /// `swipeGesture` translation on the X-Axis
-    @State var draggingOffset: CGFloat = 0
+    @Binding var draggingOffset: CGFloat
 
     /// `swipeGesture` last translation on the X-Axis
     #if !os(tvOS)
@@ -173,8 +173,6 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
             onPageChanged?(page)
         }
     }
-
-    @Binding var contentDraggingOffset: CGFloat
     
     @ObservedObject var pagerModel: PagerModel
 
@@ -185,7 +183,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
     /// - Parameter id: KeyPath to identifiable property
     /// - Parameter content: Factory method to build new pages
     public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, id: KeyPath<Element, ID>, draggingOffset: Binding<CGFloat>, @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
-        self._contentDraggingOffset = draggingOffset
+        self._draggingOffset = draggingOffset
         self._page = page
         self.pagerModel = PagerModel(page: page.wrappedValue)
         self.data = Array(data)
@@ -211,7 +209,7 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
                          pagerModel: pagerModel,
                          data: data,
                          id: id,
-                         draggingOffset: self.$contentDraggingOffset,
+                         draggingOffset: self.$draggingOffset,
                          content: content)
                 .contentLoadingPolicy(contentLoadingPolicy)
                 .loopPages(isInifinitePager, repeating: loopingCount)
