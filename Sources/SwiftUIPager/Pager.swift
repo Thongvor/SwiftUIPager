@@ -31,7 +31,7 @@ import SwiftUI
 ///
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 public struct Pager<Element, ID, PageView>: View  where PageView: View, Element: Equatable, ID: Hashable {
-    
+
     /// `Direction` determines the direction of the swipe gesture
     enum Direction {
         /// Swiping  from left to right
@@ -39,131 +39,134 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         /// Swiping from right to left
         case backward
     }
-    
+
     /*** Constants ***/
-    
+
     /// Angle of rotation when should rotate
     let rotationDegrees: Double = 20
-    
+
     /// Angle of rotation when should rotate
     let rotationInteractiveScale: CGFloat = 0.7
-    
+
     /// Axis of rotation when should rotate
     let rotationAxis: (x: CGFloat, y: CGFloat, z: CGFloat) = (0, 1, 0)
-    
+
     /*** Dependencies ***/
-    
+
     /// `ViewBuilder` block to create each page
     let content: (Element) -> PageView
-    
+
     /// `KeyPath` to data id property
     let id: KeyPath<Element, ID>
-    
+
     /// Array of items that will populate each page
     var data: [Element]
-    
+
     /*** ViewModified properties ***/
-    
+
     /// Whether `Pager` should bounce or not
     var bounces: Bool = true
-    
+
     /// Max relative item size that `Pager` will scroll before determining whether to move to the next page
     var pageRatio: CGFloat = 1
-    
+
     /// Animation to be applied when the user stops dragging
     var pagingAnimation: ((DragResult) -> PagingAnimation)?
-    
+
     /// Sensitivity used to determine whether or not to swipe the page
     var sensitivity: PaginationSensitivity = .default
-    
+
     /// Policy to be applied when loading content
     var contentLoadingPolicy: ContentLoadingPolicy = .default
-    
+
     /// Swipe direction for horizontal `Pager`
     var horizontalSwipeDirection: HorizontalSwipeDirection = .leftToRight
-    
+
     /// Swipe direction for vertical `Pager`
     var verticalSwipeDirection: VerticalSwipeDirection = .topToBottom
-    
+
     /// Hittable area
     var swipeInteractionArea: SwipeInteractionArea = .page
-    
+
     /// Item alignment inside `Pager`
     var itemAlignment: PositionAlignment = .center
-    
+
     /// The elements alignment relative to the container
     var alignment: PositionAlignment = .center
-    
+
     /// `true` if the pager is horizontal
     var isHorizontal: Bool = true
-    
+
     /// Shrink ratio that affects the items that aren't focused
     var interactiveScale: CGFloat = 1
-    
+
     /// `true` if  `Pager` can be dragged
     var allowsDragging: Bool = true
-    
+
     /// `true` if pages should have a 3D rotation effect
     var shouldRotate: Bool = false
-    
+
     /// Used to modify `Pager` offset outside this view
     var pageOffset: Double = 0
-    
+
     /// Vertical padding
     var sideInsets: CGFloat = 0
-    
+
     /// Space between pages
     var itemSpacing: CGFloat = 0
-    
+
     /// Whether the `Pager` loops endlessly
     var isInifinitePager: Bool = false
-    
+
     /// Number of times the input data should be repeated in a looping `Pager`
     var loopingCount: UInt = 1
-    
+
     /// Whether `Pager` should page multiple pages at once
     var allowsMultiplePagination: Bool = false
-    
+
     /// Wheter `Pager` delays gesture recognition
     var delaysTouches: Bool = true
-    
+
     /// Priority selected to add `swipeGesture`
     var gesturePriority: GesturePriority = .default
-    
+
     /// Will apply this ratio to each page item. The aspect ratio follows the formula _width / height_
     var itemAspectRatio: CGFloat?
-    
+
     /// Will try to have the items fit this size
     var preferredItemSize: CGSize?
-    
+
     /// Callback for every new page
     var onPageChanged: ((Int) -> Void)?
     
     /// Callback for when dragging begins
     var onDraggingBegan: (() -> Void)?
-    
+
     /// Callback for when dragging changes
     var onDraggingChanged: ((Double) -> Void)?
-    
+
     /// Callback for when dragging ends
     var onDraggingEnded: ((Double) -> Void)?
-    
+
     /*** State and Binding properties ***/
-    
+
+    /// Size of the view
+    @State var size: CGSize = .zero
+
     /// `swipeGesture` translation on the X-Axis
-    @State var draggingOffset: CGFloat = 0.0
-    
+    @Binding var draggingOffset: CGFloat
+
     /// `swipeGesture` last translation on the X-Axis
     #if !os(tvOS)
     @State var lastDraggingValue: DragGesture.Value?
     #endif
-    
+
     /// `swipeGesture` velocity on the X-Axis
     @State var draggingVelocity: Double = 0
-    
+
     /// Increment resulting from the last swipe
     @State var pageIncrement = 1
-    
+
     /// Page index
     @Binding var page: Int {
         didSet {
@@ -171,63 +174,57 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
         }
     }
     
-    @Binding var contentDraggingOffset: CGFloat
-    
-    let pagerModel: PagerModel
-    
+    @ObservedObject var pagerModel: PagerModel
+
     /// Initializes a new `Pager`.
     ///
     /// - Parameter page: Binding to the page index
     /// - Parameter data: Collection of items to populate the content
     /// - Parameter id: KeyPath to identifiable property
     /// - Parameter content: Factory method to build new pages
-    public init<Data: RandomAccessCollection>(
-        page: Binding<Int>,
-        data: Data,
-        id: KeyPath<Element, ID>,
-        draggingOffset: Binding<CGFloat>,
-        @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
+    public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, id: KeyPath<Element, ID>, draggingOffset: Binding<CGFloat>, @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
+        self._draggingOffset = draggingOffset
         self._page = page
-        self._contentDraggingOffset = draggingOffset
         self.pagerModel = PagerModel(page: page.wrappedValue)
         self.data = Array(data)
         self.id = id
         self.content = content
     }
-    
+
     public var body: some View {
         GeometryReader { proxy in
             self.content(for: proxy.size)
                 .environmentObject(pagerModel)
                 .onReceive(pagerModel.$page) { (page) in
+                    guard self.page != page else { return }
                     self.page = page
                 }
         }
         .clipped()
     }
-    
+
     func content(for size: CGSize) -> PagerContent {
         var pagerContent =
             PagerContent(size: size,
                          pagerModel: pagerModel,
                          data: data,
                          id: id,
-                         draggingOffset: self.$contentDraggingOffset,
+                         draggingOffset: self.$draggingOffset,
                          content: content)
-            .contentLoadingPolicy(contentLoadingPolicy)
-            .loopPages(isInifinitePager, repeating: loopingCount)
-            .alignment(alignment)
-            .interactive(interactiveScale)
-            .pageOffset(pageOffset)
-            .itemSpacing(itemSpacing)
-            .itemAspectRatio(itemAspectRatio, alignment: itemAlignment)
-            .onPageChanged(onPageChanged)
-            .padding(sideInsets)
-            .pagingAnimation(pagingAnimation)
-            .partialPagination(pageRatio)
-        
+                .contentLoadingPolicy(contentLoadingPolicy)
+                .loopPages(isInifinitePager, repeating: loopingCount)
+                .alignment(alignment)
+                .interactive(interactiveScale)
+                .pageOffset(pageOffset)
+                .itemSpacing(itemSpacing)
+                .itemAspectRatio(itemAspectRatio, alignment: itemAlignment)
+                .onPageChanged(onPageChanged)
+                .padding(sideInsets)
+                .pagingAnimation(pagingAnimation)
+                .partialPagination(pageRatio)
+
         #if !os(tvOS)
-        pagerContent = pagerContent
+          pagerContent = pagerContent
             .swipeInteractionArea(swipeInteractionArea)
             .allowsDragging(allowsDragging)
             .pagingPriority(gesturePriority)
@@ -237,23 +234,24 @@ public struct Pager<Element, ID, PageView>: View  where PageView: View, Element:
             .onDraggingChanged(onDraggingChanged)
             .onDraggingEnded(onDraggingEnded)
             .bounces(bounces)
-        #endif
-        
+          #endif
+
         pagerContent = allowsMultiplePagination ? pagerContent.multiplePagination() : pagerContent
         pagerContent = isHorizontal ? pagerContent.horizontal(horizontalSwipeDirection) : pagerContent.vertical(verticalSwipeDirection)
         pagerContent = shouldRotate ? pagerContent.rotation3D() : pagerContent
-        
+
         if let preferredItemSize = preferredItemSize {
             pagerContent = pagerContent.preferredItemSize(preferredItemSize)
         }
-        
+
         return pagerContent
     }
+
 }
 
 @available(iOS 13.0, macOS 10.15, tvOS 13.0, watchOS 6.0, *)
 extension Pager where ID == Element.ID, Element : Identifiable {
-    
+
     /// Initializes a new Pager.
     ///
     /// - Parameter data: Collection of items to populate the content
@@ -261,5 +259,6 @@ extension Pager where ID == Element.ID, Element : Identifiable {
     public init<Data: RandomAccessCollection>(page: Binding<Int>, data: Data, draggingOffset: Binding<CGFloat>, @ViewBuilder content: @escaping (Element) -> PageView) where Data.Index == Int, Data.Element == Element {
         self.init(page: page, data: Array(data), id: \Element.id, draggingOffset: draggingOffset, content: content)
     }
-    
+
 }
+
